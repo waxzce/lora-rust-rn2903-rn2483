@@ -72,9 +72,9 @@ pub fn serial_config() -> SerialPortSettings {
 // which is well-specified.
 
 // In order to turn the raw bytes into a String for display, this helper function comes
-// in handy. It also removes the trailing crlf.
+// in handy.
 fn bytes_to_string(bytes: &[u8]) -> String {
-    (&*String::from_utf8_lossy(bytes).trim_end()).into()
+    (&*String::from_utf8_lossy(bytes)).into()
 }
 
 /// A handle to a serial link connected to a RN2903 module.
@@ -107,13 +107,23 @@ impl Rn2903 {
     ///
     /// Returns a `String` like `RN2903 1.0.3 Aug  8 2017 15:11:09`
     pub fn system_version(&mut self) -> Result<String> {
-        self.port.write_all(b"sys get ver\x0D\x0A")?;
+        let bytes = self.transact_command(b"sys get ver\x0D\x0A")?;
+        Ok(bytes_to_string(&bytes))
+    }
+
+    /// Write the specified command to the module and get a single line of response.
+    ///
+    /// This function adds the CRLF to the given command and returns the response without
+    /// the CRLF.
+    pub fn transact_command(&mut self, command: &[u8]) -> Result<Vec<u8>> {
+        use std::io::IoSlice;
+        self.port.write_vectored(&[IoSlice::new(command), IoSlice::new(b"\x0D\x0A")])?;
         self.port.flush()?;
-        Ok(bytes_to_string(&self.read_line()?))
+        self.read_line()
     }
 
     /// Read bytes from the device until a CRLF is encountered, then returns the bytes
-    /// read, including the CRLF.
+    /// read, not including the CRLF.
     // This operation waits 12ms between each 32-byte read because the LoStick has
     // the hiccups.
     fn read_line(&mut self) -> Result<Vec<u8>> {
@@ -142,6 +152,12 @@ impl Rn2903 {
                 thread::sleep(Duration::from_millis(12));
             }
         }
+
+        // Remove zeroes and crlf
+        while (b"\x00\x0D\x0A").contains(&vec[vec.len() - 1]) {
+            vec.pop();
+        }
+
         Ok(vec)
     }
 }
