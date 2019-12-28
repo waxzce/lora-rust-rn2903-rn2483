@@ -2,7 +2,8 @@
 // to communicate with an external device, any operation could discover a disconnection
 // from the RN2903 serial link, so everything which does such communication will return
 // a `Result<T, rn2903::Error>`.
-#[macro_use] extern crate quick_error;
+#[macro_use]
+extern crate quick_error;
 use std::io;
 
 quick_error! {
@@ -41,12 +42,12 @@ type Result<T> = std::result::Result<T, Error>;
 // exports all the configuration information needed to configure a serial port to
 // communicate correctly with an RN2903.
 
-use serialport::prelude::*;
-use std::io::prelude::*;
 use core::convert::AsRef;
-use std::ffi::OsStr;
-use std::thread;
 use core::time::Duration;
+use serialport::prelude::*;
+use std::ffi::OsStr;
+use std::io::prelude::*;
+use std::thread;
 
 /// Returns a `serialport::SerialPortSettings` corresponding to the default settings of
 /// an RNB2903. Use this to configure your serial port.
@@ -61,7 +62,7 @@ pub fn serial_config() -> SerialPortSettings {
         flow_control: FlowControl::None,
         parity: Parity::None,
         stop_bits: StopBits::One,
-        timeout: Duration::new(1, 0)
+        timeout: Duration::new(1, 0),
     }
 }
 
@@ -70,11 +71,17 @@ pub fn serial_config() -> SerialPortSettings {
 // wrapper struct's `::new()` function checks the output of the `sys get ver` command,
 // which is well-specified.
 
+// In order to turn the raw bytes into a String for display, this helper function comes
+// in handy. It also removes the trailing crlf.
+fn bytes_to_string(bytes: &[u8]) -> String {
+    (&*String::from_utf8_lossy(bytes).trim_end()).into()
+}
+
 /// A handle to a serial link connected to a RN2903 module.
 ///
 /// This library guarantees safety regardless of the state of the RN2903.
 pub struct Rn2903 {
-    port: Box<dyn SerialPort>,    
+    port: Box<dyn SerialPort>,
 }
 
 impl Rn2903 {
@@ -86,18 +93,13 @@ impl Rn2903 {
     }
 
     /// Open a new connection to a module over the given serial connection.
-    pub fn new(mut port: Box<dyn SerialPort>) -> Result<Self> {
-        let mut buf = [0; 35];
-        port.write_all(b"sys get ver\x0D\x0A")?;
-        port.flush()?;
-        thread::sleep(Duration::from_millis(12));
-        port.read(&mut buf)?;
-        if &buf[0..6] != b"RN2903" {
-            Err(Error::WrongDevice((&*String::from_utf8_lossy(&buf)).into()))
+    pub fn new(port: Box<dyn SerialPort>) -> Result<Self> {
+        let mut new = Self { port };
+        let version = new.system_version()?;
+        if &version[0..6] != "RN2903" {
+            Err(Error::WrongDevice(version))
         } else {
-            Ok(Self {
-                port
-            })
+            Ok(new)
         }
     }
 
@@ -105,12 +107,41 @@ impl Rn2903 {
     ///
     /// Returns a `String` like `RN2903 1.0.3 Aug  8 2017 15:11:09`
     pub fn system_version(&mut self) -> Result<String> {
-        let mut buf = [0; 35];
         self.port.write_all(b"sys get ver\x0D\x0A")?;
         self.port.flush()?;
-        thread::sleep(Duration::from_millis(12));
-        self.port.read(&mut buf)?;
-        Ok((&*String::from_utf8_lossy(&buf).trim_end()).into())
+        Ok(bytes_to_string(&self.read_line()?))
+    }
+
+    /// Read bytes from the device until a CRLF is encountered, then returns the bytes
+    /// read, including the CRLF.
+    // This operation waits 12ms between each 32-byte read because the LoStick has
+    // the hiccups.
+    fn read_line(&mut self) -> Result<Vec<u8>> {
+        let mut vec = Vec::with_capacity(32);
+        loop {
+            let mut buf = [0; 32];
+            self.port.read(&mut buf)?;
+            vec.extend_from_slice(&buf);
+
+            // Check if crlf was added to the buffer.
+            let mut found_lf = false;
+            let mut found_crlf = false;
+            for byte in vec.iter().rev() {
+                if found_lf {
+                    if *byte == b'\x0D' {
+                        found_crlf = true;
+                        break;
+                    }
+                } else {
+                    found_lf = *byte == b'\x0A';
+                }
+            }
+            if found_crlf {
+                break;
+            } else {
+                thread::sleep(Duration::from_millis(12));
+            }
+        }
+        Ok(vec)
     }
 }
-
