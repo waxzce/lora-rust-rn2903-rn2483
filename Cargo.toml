@@ -1,0 +1,10 @@
+[package]
+name = "rn2903"
+version = "0.1.0"
+authors = ["Leonora Tindall <nora@nora.codes>"]
+edition = "2018"
+
+[dependencies]
+serialport = "3.3"
+quick-error = "1"
+
