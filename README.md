@@ -1,5 +1,5 @@
 # RN2903
-## A Rusty interface for the RN2903 serial protocol
+## A Rusty interface for the RN2903 LoRa module's serial protocol
 
 The RN2903 is a LoRa and FSK transciever for the 915MHz ISM band, commonly used in USB
 devices like the LoStik.
@@ -7,6 +7,9 @@ devices like the LoStik.
 This crate provides a safe, idiomatic interface using cross-platform native serial
 functionality via `serialport`. This supports, for instance, a LoStik connected to a USB
 TTY or virtual COM port, or a RN2903 connected via a TTL serial interface.
+
+This crate is available under the GNU General Public License, version 3.0 only, and does
+not directly depend on unstable crates.
 
 ## Example
 

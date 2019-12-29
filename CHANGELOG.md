@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- GNU GPL v3 license
+- Cargo metadata
+
 ### Changed
 
 ### Deprecated
