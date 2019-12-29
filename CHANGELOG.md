@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - GNU GPL v3 license
 - Cargo metadata
+- Basic functionality
 
 ### Changed
 
