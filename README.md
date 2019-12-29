@@ -25,10 +25,17 @@ fn main() {
     let mut txvr = Rn2903::new_at("/dev/ttyUSB0")
         .expect("Could not open device. Error");
     loop {
-        txvr.transact(b"radio set pindig GPIO10 0").unwrap();
+        txvr.transact(b"sys set pindig GPIO10 0").unwrap();
         thread::sleep(Duration::from_millis(1000));
-        txvr.transact(b"radio set pindig GPIO10 1").unwrap();
+        txvr.transact(b"sys set pindig GPIO10 1").unwrap();
         thread::sleep(Duration::from_millis(1000));
     }
 }
 ```
+
+## Module Documentation
+
+This repository reproduces the relevant documents for the RN2903 module at
+[command_reference-40001811B.pdf](docu/command_reference-40001811B.pdf) and
+[datasheet-DS5000239H.pdf](docu/datasheet-DS5000239H.pdf).
+
