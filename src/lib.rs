@@ -224,7 +224,6 @@ impl Rn2903 {
     ///
     /// Using [`::transact()`](#method.transact) is preferred.
     pub fn send_line(&mut self, line: &[u8]) -> Result<()> {
-        use std::io::IoSlice;
         let bytes: Vec<u8> = line.iter().chain(b"\x0D\x0A".iter()).cloned().collect();
         let mut cursor = 0;
         while cursor < bytes.len() {
