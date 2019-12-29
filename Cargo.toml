@@ -6,6 +6,7 @@ edition = "2018"
 license = "GPL-3.0-only"
 description = "A Rusty interface for the RN2903 LoRa module's serial protocol"
 homepage = "https://nora.codes/projects/rn2903"
+repository = "https://git.nora.codes/nora/rn2903"
 readme = "README.md"
 keywords = ["radio", "hardware", "serial", "lora"]
 categories = ["api-bindings", "embedded", "hardware-support"]
