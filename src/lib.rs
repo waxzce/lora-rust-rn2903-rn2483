@@ -286,4 +286,11 @@ impl Rn2903 {
         let bytes = self.transact(b"sys get ver")?;
         Ok(bytes_to_string(&bytes))
     } 
+
+    /// Queries the module for its firmware version information.
+    ///
+    /// As `::system_version()`, but returns bytes.
+    pub fn system_version_bytes(&mut self) -> Result<Vec<u8>> {
+        self.transact(b"sys get ver")
+    }
 }
