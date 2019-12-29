@@ -17,3 +17,13 @@ CHANGELOG.md.
 
 All method documentation is written in the present tense. For example, "Creates a new..."
 rather than "Create a new...".
+
+## Cutting a Release
+
+When cutting a release:
+
+- In CHANGELOG, rename the Unreleased section and add a new Unreleased section above it
+- Make a commit with only that change
+- Tag that commit like "v1.0.0"
+- Push main and the tag
+- `cargo publish`
