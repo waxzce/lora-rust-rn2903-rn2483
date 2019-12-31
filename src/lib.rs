@@ -90,7 +90,7 @@ use std::thread;
 /// # Examples
 ///
 /// Opening a serial port with slightly modified settings. In this case, the baud rate
-/// has been reduced. 
+/// has been reduced.
 ///
 /// ```no_run
 /// let settings = serialport::SerialPortSettings {
@@ -149,7 +149,7 @@ pub struct Rn2903 {
     port: Box<dyn SerialPort>,
 }
 
-/// # Meta (type) Functions 
+/// # Meta (type) Functions
 ///
 /// These functions deal with the type `Rn2903`, providing ways to create and manipulate
 /// the structure itself.
@@ -163,7 +163,7 @@ impl Rn2903 {
     /// [`serial_config`](fn.serial_config.html).
     ///
     /// # Example
-    /// 
+    ///
     /// Connecting to a module accessible over the USB0 TTY.
     /// ```no_run
     /// # use rn2903::Rn2903;
@@ -196,7 +196,7 @@ impl Rn2903 {
     pub fn new_unchecked(port: Box<dyn SerialPort>) -> Self {
         Self { port }
     }
- 
+
     /// Acquires temporary direct access to the captured `SerialPort` trait object.
     ///
     /// Use this access to, for example, reconfigure the connection on the fly,
@@ -223,7 +223,7 @@ impl Rn2903 {
     }
 }
 
-/// # Low-level Communications 
+/// # Low-level Communications
 impl Rn2903 {
     /// Writes the specified command to the module and returns a single line in response.
     ///
@@ -243,7 +243,10 @@ impl Rn2903 {
     fn transact_expecting(&mut self, command: &[u8], expectation: &[u8]) -> Result<()> {
         let bytes = self.transact(command)?;
         if bytes != expectation {
-            Err(Error::bad_response(bytes_to_string(expectation), bytes_to_string(&bytes)))
+            Err(Error::bad_response(
+                bytes_to_string(expectation),
+                bytes_to_string(&bytes),
+            ))
         } else {
             Ok(())
         }
@@ -257,7 +260,7 @@ impl Rn2903 {
         let mut cursor = 0;
         while cursor < bytes.len() {
             cursor += self.port.write(&bytes[cursor..])?;
-        } 
+        }
         self.port.flush()?;
         thread::sleep(Duration::from_millis(500));
         Ok(())
@@ -303,7 +306,6 @@ impl Rn2903 {
 
         Ok(vec)
     }
-
 }
 
 /// # System API Functions
@@ -314,7 +316,7 @@ impl Rn2903 {
     pub fn system_version(&mut self) -> Result<String> {
         let bytes = self.transact(b"sys get ver")?;
         Ok(bytes_to_string(&bytes))
-    } 
+    }
 
     /// Queries the module for its firmware version information.
     ///
@@ -325,7 +327,7 @@ impl Rn2903 {
 
     /// Resets the CPU on the connected module. State in memory is lost and the MAC
     /// starts up upon reboot, automatically loading default LoRaWAN settings.
-    /// 
+    ///
     /// Returns the system version, like `::system_version_bytes()`.
     pub fn system_module_reset(&mut self) -> Result<Vec<u8>> {
         self.transact(b"sys reset")
@@ -353,7 +355,7 @@ impl Rn2903 {
         let val = bytes_to_string(&self.transact(b"mac pause")?);
         let ms: u32 = match val.parse() {
             Ok(v) => v,
-            Err(_) => return Err(Error::bad_response("<integer>", val))
+            Err(_) => return Err(Error::bad_response("<integer>", val)),
         };
         if ms == 0 {
             Err(Error::CannotPause)
