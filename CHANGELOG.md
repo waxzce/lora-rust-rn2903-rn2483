@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `Rn2903::system_version_bytes()`
 - `Rn2903::system_factory_reset()`
+- `Rn2903::system_module_reset()`
 
 ### Changed
 

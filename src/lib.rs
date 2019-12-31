@@ -294,11 +294,19 @@ impl Rn2903 {
         self.transact(b"sys get ver")
     }
 
+    /// Resets the CPU on the connected module. State in memory is lost and the MAC
+    /// starts up upon reboot, automatically loading default LoRaWAN settings.
+    /// 
+    /// Returns the system version, like `::system_version_bytes()`.
+    pub fn system_module_reset(&mut self) -> Result<Vec<u8>> {
+        self.transact(b"sys reset")
+    }
+
     /// Performs a factory reset on the connected module. All EEPROM values are
     /// restored to factory defaults. All LoRaWAN settings set by the user are lost.
+    ///
     /// Returns the system version, like `::system_version_bytes()`.
-    pub fn system_factory_reset(&mut self) -> Result<String> {
-        let bytes = self.transact(b"sys factoryRESET")?;
-        Ok(bytes_to_string(&bytes))
+    pub fn system_factory_reset(&mut self) -> Result<Vec<u8>> {
+        self.transact(b"sys factoryRESET")
     }
 }
