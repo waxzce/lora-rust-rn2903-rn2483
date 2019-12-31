@@ -36,6 +36,19 @@ quick_error! {
             display("Could not verify version string. Expected a RN2903 firmware revision, got '{}'",
                 version)
         }
+        /// The device returned a response that doesn't make sense, given the command that
+        /// was issued.
+        BadResponse(expected: String, response: String) {
+            description("bad response from module")
+            display("Received a bad response from the module. Expected '{}', got '{}'.",
+                expected, response)
+        }
+        /// The device is operating in a mode which prevents MAC functionality from being
+        /// paused, but a pause was requested.
+        CannotPause {
+            description("the LoRaWAN MAC cannot be paused")
+            display("The LoRaWAN MAC cannot be paused right now, but a pause was requested.")
+        }
         /// The program has become disconnected from the RN2903 module due to an I/O
         /// error. It is possible the device was physically disconnected, or that the
         /// host operating system closed the serial port for some reason.
@@ -44,6 +57,12 @@ quick_error! {
             description(err.description())
             from()
         }
+    }
+}
+
+impl Error {
+    fn bad_response<S: Into<String>, T: Into<String>>(expected: S, response: T) -> Self {
+        Self::BadResponse(expected.into(), response.into())
     }
 }
 
@@ -133,9 +152,7 @@ pub struct Rn2903 {
 /// # Meta (type) Functions 
 ///
 /// These functions deal with the type `Rn2903`, providing ways to create and manipulate
-/// the structure itself. Aside from performing validation of the device on the other side
-/// of the serial link, these functions do not communicate with the module.
-///
+/// the structure itself.
 /// ## Creating an `Rn2903`
 /// There are several  ways to create a `Rn2903` wrapper for an RN2903 serial connection.
 /// `::new_at()` is the recommended method, but `::new()` can be useful if the platform
@@ -218,6 +235,18 @@ impl Rn2903 {
     pub fn transact(&mut self, command: &[u8]) -> Result<Vec<u8>> {
         self.send_line(command)?;
         self.read_line()
+    }
+
+    /// Convenience function for situations where only one response is expected according
+    /// to the module's documentation. Receiving another response means something wacky
+    /// is going on.
+    fn transact_expecting(&mut self, command: &[u8], expectation: &[u8]) -> Result<()> {
+        let bytes = self.transact(command)?;
+        if bytes != expectation {
+            Err(Error::bad_response(bytes_to_string(expectation), bytes_to_string(&bytes)))
+        } else {
+            Ok(())
+        }
     }
 
     /// Writes the specified command to the module, adding a CRLF and flushing the buffer.
@@ -308,5 +337,33 @@ impl Rn2903 {
     /// Returns the system version, like `::system_version_bytes()`.
     pub fn system_factory_reset(&mut self) -> Result<Vec<u8>> {
         self.transact(b"sys factoryRESET")
+    }
+}
+
+/// # MAC API Functions
+impl Rn2903 {
+    /// Pauses the LoRaWAN MAC functionality on the device, returning the number of
+    /// milliseconds for which the MAC can remain paused without affecting LoRaWAN
+    /// functionality.
+    ///
+    /// This command can fail with `CannotPause`, meaning the device is operating in a
+    /// mode (like LoRaWAN Class C mode) in which pausing the MAC for any period of time
+    /// would result in degraded service.
+    pub fn mac_pause(&mut self) -> Result<u32> {
+        let val = bytes_to_string(&self.transact(b"mac pause")?);
+        let ms: u32 = match val.parse() {
+            Ok(v) => v,
+            Err(_) => return Err(Error::bad_response("<integer>", val))
+        };
+        if ms == 0 {
+            Err(Error::CannotPause)
+        } else {
+            Ok(ms)
+        }
+    }
+
+    /// Resumes LoRaWAN MAC functionality on the device after being paused.
+    pub fn mac_resume(&mut self) -> Result<()> {
+        self.transact_expecting(b"mac resume", b"ok")
     }
 }
