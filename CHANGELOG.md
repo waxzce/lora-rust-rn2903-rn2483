@@ -13,12 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Rn2903::system_module_reset()`
 - `Rn2903::mac_pause()` and `::mac_resume()`
 - `BadResponse` and `CannotPause` error variants
+- Examples directory with LED blinky and LoRa packet RX examples 
 
 ### Changed
 
 ### Deprecated
 
 ### Removed
+- `main.rs` (moved to an example)
 
 ### Fixed
 
