@@ -8,6 +8,23 @@
 //! TTY or virtual COM port, or a RN2903 connected via a TTL serial interface.
 //!
 //! See the [`Rn2903` struct](struct.Rn2903.html) for the bulk of the crate's functionality.
+//!
+//! # Examples
+//!
+//! Receiving and printing valid LoRa payloads.
+//!
+//! ```no_run
+//! # use rn2903::{Rn2903, ModulationMode};
+//! let mut txvr = Rn2903::new_at("/dev/ttyUSB0")
+//!     .expect("Could not open device. Error");
+//! txvr.mac_pause().unwrap();
+//! txvr.radio_set_modulation_mode(ModulationMode::LoRa).unwrap();
+//! loop {
+//!     if let Some(packet) = txvr.radio_rx(65535).unwrap() {
+//!         println!("{:?}", packet);
+//!     }
+//! }
+//! ```
 
 // One of the critical aspects of this library is error handling. Because it is intended
 // to communicate with an external device, any operation could discover a disconnection
@@ -48,6 +65,12 @@ quick_error! {
         CannotPause {
             description("the LoRaWAN MAC cannot be paused")
             display("The LoRaWAN MAC cannot be paused right now, but a pause was requested.")
+        }
+        /// The transceiver is busy with another operation, or is under the control of
+        /// the MAC, and cannot be used to perform the requested operation.
+        TransceiverBusy {
+            description("the radio transceiver hardware is in use")
+            display("The LoRa/FSK radio transceiver hardware is in use by another operation or the MAC layer and cannot be used to perform the requested operation.")
         }
         /// The program has become disconnected from the RN2903 module due to an I/O
         /// error. It is possible the device was physically disconnected, or that the
@@ -386,6 +409,60 @@ impl Rn2903 {
         match u8::from_str_radix(&response, 16) {
             Ok(v) => Ok(v),
             Err(_) => Err(Error::bad_response("<integer>", response)),
+        }
+    }
+}
+
+/// Types of modulation available for transmitting and receiving packets.
+#[derive(Debug, PartialEq, Eq)]
+pub enum ModulationMode {
+    /// Regular digital frequency shift keying mode
+    Fsk,
+    /// LoRa chirp spread spectrum mode
+    LoRa, // TODO: GFSK with radio set bt <value>
+}
+
+/// # Radio API Functions
+impl Rn2903 {
+    /// Set the modulation mode used by the radio for transmission and reception.
+    pub fn radio_set_modulation_mode(&mut self, mode: ModulationMode) -> Result<()> {
+        match mode {
+            ModulationMode::Fsk => self.transact_expecting(b"radio set mod fsk", b"ok"),
+            ModulationMode::LoRa => self.transact_expecting(b"radio set mod lora", b"ok"),
+        }
+    }
+
+    /// Open the receiver for the given timeout in symbols (for LoRa) or milliseconds
+    /// (for FSK), returning `Ok(Some(_))` if a valid packet is received or `Ok(None)` if
+    /// no packet is received before the timeout.
+    pub fn radio_rx(&mut self, timeout: u16) -> Result<Option<Vec<u8>>> {
+        let result = self.transact(&format!("radio rx {}", timeout).into_bytes())?;
+        match &result[..] {
+            b"ok" => (),
+            b"busy" => return Err(Error::TransceiverBusy),
+            v => return Err(Error::bad_response("ok | busy", bytes_to_string(v))),
+        };
+        let response = self.read_line()?;
+        match &response[0..9] {
+            b"radio_err" => Ok(None),
+            b"radio_rx " => {
+                let response_bytes: std::result::Result<Vec<u8>, _> = response[10..]
+                    .chunks(2)
+                    .map(bytes_to_string)
+                    .map(|b| u8::from_str_radix(&b, 16))
+                    .collect();
+                match response_bytes {
+                    Ok(v) => Ok(Some(v)),
+                    Err(_) => Err(Error::bad_response(
+                        "radio_rx <bytes>",
+                        bytes_to_string(&response),
+                    )),
+                }
+            }
+            _ => Err(Error::bad_response(
+                "radio_err | radio_rx <bytes>",
+                bytes_to_string(&response),
+            )),
         }
     }
 }

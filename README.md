@@ -13,22 +13,20 @@ not directly depend on unstable crates.
 
 ## Example
 
-For instance, here is a simple program which blinks the LoStik's LED using the RN2903's
-GPIO functionality.
+For instance, here is a simple program which dumps all LoRa packets received.
 
 ```rust
-use rn2903::Rn2903;
-use std::time::Duration;
-use std::thread;
+use rn2903::{Rn2903, ModulationMode};
 
 fn main() {
     let mut txvr = Rn2903::new_at("/dev/ttyUSB0")
         .expect("Could not open device. Error");
+    txvr.mac_pause().unwrap();
+    txvr.radio_set_modulation_mode(ModulationMode::LoRa).unwrap();
     loop {
-        txvr.transact(b"sys set pindig GPIO10 0").unwrap();
-        thread::sleep(Duration::from_millis(1000));
-        txvr.transact(b"sys set pindig GPIO10 1").unwrap();
-        thread::sleep(Duration::from_millis(1000));
+        if let Some(packet) = txvr.radio_rx(65535).unwrap() {
+            println!("{:?}", packet);
+        }
     }
 }
 ```

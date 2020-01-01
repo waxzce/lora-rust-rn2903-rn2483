@@ -1,4 +1,4 @@
-use rn2903::Rn2903;
+use rn2903::{bytes_to_string, Rn2903};
 use std::env::args;
 use std::process::exit;
 use std::thread;
@@ -21,12 +21,12 @@ fn main() {
 
     txvr.mac_pause().unwrap();
     txvr.transact(b"sys set pindig GPIO10 0").unwrap();
-    txvr.transact(b"radio rx 0").unwrap();
     loop {
-        println!("{:?}", txvr.read_line().unwrap());
-        txvr.transact(b"sys set pindig GPIO10 1").unwrap();
-        thread::sleep(Duration::from_millis(100));
-        txvr.transact(b"sys set pindig GPIO10 0").unwrap();
-        txvr.transact(b"radio rx 0").unwrap();
+        if let Some(packet) = txvr.radio_rx(65535).unwrap() {
+            println!("{:?}", packet);
+            txvr.transact(b"sys set pindig GPIO10 1").unwrap();
+            thread::sleep(Duration::from_millis(100));
+            txvr.transact(b"sys set pindig GPIO10 0").unwrap();
+        }
     }
 }

@@ -13,14 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Rn2903::system_module_reset()`
 - `Rn2903::mac_pause()` and `::mac_resume()`
 - `Rn2903::system_{get, set}_nvm()`
-- `BadResponse` and `CannotPause` error variants
+- `Rn2903::radio_set_modulation_mode()`
+- `Rn2903::radio_rx()`
+- `BadResponse`, `TransceiverBusy`, and `CannotPause` error variants
 - `NvmAddress` newtype for representing values that can be passed to NVM functions
+- `ModulationMode` enum listing available modulation modes
 - Examples directory:
     - LED blink
     - NVM read/write
     - LoRa packet RX
 
 ### Changed
+- README.md example (now showing packet RX)
 
 ### Deprecated
 
