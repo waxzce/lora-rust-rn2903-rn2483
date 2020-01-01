@@ -308,6 +308,34 @@ impl Rn2903 {
     }
 }
 
+/// An address in user-accessible nonvolatile memory. Guaranteed to be between 0x300 and
+/// 0x3FF.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct NvmAddress(u16);
+
+impl NvmAddress {
+    /// Create a new `NvmAddress` from a `u16`. The given value must be between 0x300 and
+    /// 0x3FF.
+    ///
+    /// # Panics
+    /// Panics if the given value is not between 0x300 and 0x3FF.
+    pub fn new(value: u16) -> NvmAddress {
+        if value < 0x300 {
+            panic!("Attempted to construct NvmAddress less than 0x300.");
+        }
+        if value > 0x3FF {
+            panic!("Attempted to construct NvmAddress more than 0x3FF.");
+        }
+        NvmAddress(value)
+    }
+
+    /// Return the address to which this NvmAddress refers. Guaranteed to be between
+    /// 0x300 and 0x3FF.
+    pub fn inner(self) -> u16 {
+        self.0
+    }
+}
+
 /// # System API Functions
 impl Rn2903 {
     /// Queries the module for its firmware version information.
@@ -339,6 +367,26 @@ impl Rn2903 {
     /// Returns the system version, like `::system_version_bytes()`.
     pub fn system_factory_reset(&mut self) -> Result<Vec<u8>> {
         self.transact(b"sys factoryRESET")
+    }
+
+    /// Set the value of the on-MCU nonvolatile memory at the given address to the given
+    /// value.
+    pub fn system_set_nvm(&mut self, address: NvmAddress, value: u8) -> Result<()> {
+        self.transact_expecting(
+            &format!("sys set nvm {:x} {:x}", address.inner(), value).into_bytes(),
+            b"ok",
+        )
+    }
+
+    /// Get the value of the on-MCU nonvolatile memory at the given address.
+    pub fn system_get_nvm(&mut self, address: NvmAddress) -> Result<u8> {
+        let response = bytes_to_string(
+            &self.transact(&format!("sys get nvm {:x}", address.inner()).into_bytes())?,
+        );
+        match u8::from_str_radix(&response, 16) {
+            Ok(v) => Ok(v),
+            Err(_) => Err(Error::bad_response("<integer>", response)),
+        }
     }
 }
 

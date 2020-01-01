@@ -12,8 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Rn2903::system_factory_reset()`
 - `Rn2903::system_module_reset()`
 - `Rn2903::mac_pause()` and `::mac_resume()`
+- `Rn2903::system_{get, set}_nvm()`
 - `BadResponse` and `CannotPause` error variants
-- Examples directory with LED blinky and LoRa packet RX examples 
+- `NvmAddress` newtype for representing values that can be passed to NVM functions
+- Examples directory:
+    - LED blink
+    - NVM read/write
+    - LoRa packet RX
 
 ### Changed
 
