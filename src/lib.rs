@@ -32,6 +32,7 @@
 // a `Result<T, rn2903::Error>`.
 #[macro_use]
 extern crate quick_error;
+use hex;
 use std::io;
 
 quick_error! {
@@ -79,6 +80,16 @@ quick_error! {
             cause(err)
             description(err.description())
             from()
+        }
+
+        TransmissionUnsuccessful {
+            description("the radio transmission was unsuccessful")
+            display("if transmission was unsuccessful (interrupted by radio Watchdog Timer time-out)")
+        }
+
+        InvalidParam {
+            description("the parameter is not valid")
+            display("the parameter is not valid")
         }
     }
 }
@@ -465,6 +476,23 @@ impl Rn2903 {
                 bytes_to_string(&response),
             )),
         }
+    }
+
+    pub fn radio_tx(&mut self, send: String) -> Result<Option<Vec<u8>>> {
+        let result = self.transact(&format!("radio tx {}", hex::encode(send)).into_bytes())?;
+        match &result[..] {
+            b"ok" => {
+                let sresult = self.read_line()?;
+                match &sresult[..] {
+                    b"radio_tx_ok" => return Ok(None),
+                    b"radio_err" => return Err(Error::TransmissionUnsuccessful),
+                    v => return Err(Error::bad_response("nok", bytes_to_string(v))),
+                }
+            }
+            b"invalid_param" => return Err(Error::InvalidParam),
+            b"busy" => return Err(Error::TransceiverBusy),
+            v => return Err(Error::bad_response("ok | busy", bytes_to_string(v))),
+        };
     }
 }
 

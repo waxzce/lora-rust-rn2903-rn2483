@@ -14,4 +14,5 @@ categories = ["api-bindings", "embedded", "hardware-support"]
 [dependencies]
 serialport = "3.3"
 quick-error = "1"
+hex = "0.4.2"
 
