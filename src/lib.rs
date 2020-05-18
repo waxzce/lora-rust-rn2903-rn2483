@@ -203,7 +203,8 @@ impl Rn2903 {
     pub fn new(port: Box<dyn SerialPort>) -> Result<Self> {
         let mut new = Self::new_unchecked(port);
         let version = new.system_version()?;
-        if &version[0..6] != "RN2903" {
+        // RN2483 and RN2903 are the same, just EU and US chip, but talk the same
+        if &version[0..6] != "RN2903" && &version[0..6] != "RN2483" {
             Err(Error::WrongDevice(version))
         } else {
             Ok(new)
